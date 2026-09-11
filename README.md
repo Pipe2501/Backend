@@ -9,6 +9,8 @@ API .NET 10 con autenticación JWT y base de datos PostgreSQL (Docker).
 
 ## Puesta en marcha
 
+> Puedes levantar la base de datos con **Docker** (opción recomendada, pasos 1-4) o con un **PostgreSQL instalado localmente** (ver sección "Opción alternativa" más abajo).
+
 ### 1. Levantar la base de datos (Docker)
 
 Desde la raíz del proyecto:
@@ -45,6 +47,47 @@ dotnet run --project src/Backend.API
 ```
 
 La API queda disponible en `http://localhost:5255` (dev). También es posible abrir la solución `Backend.slnx` en Visual Studio y presionar F5.
+
+## Opción alternativa: correr sin Docker (PostgreSQL local)
+
+Si no quieres usar Docker, instala PostgreSQL directamente en tu máquina:
+
+1. **Instala PostgreSQL** desde https://www.postgresql.org/download/ (acepta los valores por defecto: puerto `5432`, usuario `postgres`, deja que se registre como servicio de Windows y define la contraseña que usará el servicio).
+
+2. **Crea la base de datos** `database` con `psql`:
+
+   ```bash
+   psql -U postgres -c "CREATE DATABASE database;"
+   ```
+
+3. **Asegúrate de que la contraseña coincida** con la que la API espera (`Database:Password`, por defecto `postgres`). Si elegiste otra en la instalación, actualiza el secreto:
+
+   ```bash
+   dotnet user-secrets set "Database:Password" "tu-contraseña" --project src/Backend.API/Backend.API.csproj
+   ```
+
+4. **Configura los secretos** (si aún no los habías definido en esta máquina):
+
+   ```bash
+   dotnet user-secrets init --project src/Backend.API/Backend.API.csproj
+   dotnet user-secrets set "Jwt:Key" "usa-una-clave-larga-y-aleatoria" --project src/Backend.API/Backend.API.csproj
+   dotnet user-secrets set "Database:Password" "tu-contraseña" --project src/Backend.API/Backend.API.csproj
+   ```
+
+5. **Aplica las migraciones** (crea las tablas):
+
+   ```bash
+   dotnet tool restore
+   dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
+   ```
+
+6. **Ejecuta la API**:
+
+   ```bash
+   dotnet run --project src/Backend.API
+   ```
+
+> No hay que cambiar nada en el código: el proyecto solo necesita un PostgreSQL accesible en `localhost:5432` con la base `database`, igual que hace Docker. Si tu PostgreSQL local usa otro puerto u host, ajústalos en `Database:Port` / `Database:Host` (appsettings o User Secrets).
 
 ## Endpoints
 
