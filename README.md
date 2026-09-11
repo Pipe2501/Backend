@@ -74,6 +74,18 @@ La API queda disponible en `http://localhost:5255` (dev). También es posible ab
 
 Ambos devuelven `{ "token": "...", "name": "...", "email": "..." }`. Usa el token en el header `Authorization: Bearer <token>` para los endpoints protegidos.
 
+## CORS (conexión desde el front)
+
+En desarrollo se aceptan peticiones de cualquier origen en `localhost` (React, Angular, etc.), no hay que configurar nada.
+
+Para producción, define los orígenes permitidos en `appsettings.json` (o con la variable de entorno `Cors__AllowedOrigins__0`):
+
+```json
+"Cors": {
+  "AllowedOrigins": ["https://tu-front.example.com"]
+}
+```
+
 ## Base de datos
 
 - Base: `database`
