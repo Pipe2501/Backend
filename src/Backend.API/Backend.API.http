@@ -2,6 +2,7 @@
 @token = PEGA-AQUI-EL-TOKEN-DEL-ADMIN
 @userId = PEGA-AQUI-EL-ID-DEL-USUARIO
 @equipmentId = PEGA-AQUI-EL-ID-DEL-EQUIPO
+@assignmentId = PEGA-AQUI-EL-ID-DE-LA-ASIGNACION
 
 POST {{Backend.API_HostAddress}}/api/auth/register
 Content-Type: application/json
@@ -109,6 +110,33 @@ Content-Type: application/json
 ###
 
 DELETE {{Backend.API_HostAddress}}/api/equipment/DeleteEquipment/{{equipmentId}}
+Authorization: Bearer {{token}}
+
+###
+
+POST {{Backend.API_HostAddress}}/api/assignment/AssignEquipment
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "equipmentId": "{{equipmentId}}",
+  "userId": "{{userId}}",
+  "observations": "Entrega inicial del equipo"
+}
+
+###
+
+PATCH {{Backend.API_HostAddress}}/api/assignment/ReleaseEquipment/{{assignmentId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "observations": "Devuelto en buen estado"
+}
+
+###
+
+GET {{Backend.API_HostAddress}}/api/assignment/GetAssignments
 Authorization: Bearer {{token}}
 
 ###

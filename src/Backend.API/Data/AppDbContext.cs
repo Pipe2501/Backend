@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Equipment> Equipments => Set<Equipment>();
+    public DbSet<Assignment> Assignments => Set<Assignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +28,20 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => e.InternalCode).IsUnique();
             entity.HasIndex(e => e.SerialNumber).IsUnique();
             entity.Property(e => e.Characteristics).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<Assignment>(entity =>
+        {
+            entity.HasOne(a => a.Equipment)
+                .WithMany(e => e.Assignments!)
+                .HasForeignKey(a => a.EquipmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(a => a.User)
+                .WithMany(u => u.Assignments!)
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(a => a.EquipmentId);
+            entity.HasIndex(a => a.UserId);
         });
 
         modelBuilder.Entity<Role>().HasData(

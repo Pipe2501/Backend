@@ -101,6 +101,35 @@ Si no quieres usar Docker, instala PostgreSQL directamente en tu máquina:
 
 > No hay que cambiar nada en el código: el proyecto solo necesita un PostgreSQL accesible en `localhost:5432` con la base `database`, igual que hace Docker. Si tu PostgreSQL local usa otro puerto u host, ajústalos en `Database:Port` / `Database:Host` (appsettings o User Secrets).
 
+## Base de datos en la nube (Neon)
+
+Por defecto la API apunta a una base PostgreSQL **compartida en Neon** (host, puerto, base y usuario en `appsettings.json`, sección `Database`, con `SslMode=Require`). Así todo el equipo trabaja sobre la **misma base de datos**.
+
+Para conectar tu máquina:
+
+1. Define la contraseña de la base de Neon:
+
+```bash
+dotnet user-secrets set "Database:Password" "<password-de-neon>" --project src/Backend.API/Backend.API.csproj
+```
+
+2. Usa el **mismo** `Jwt:Key` y `Encryption:Key` que el resto del equipo. Compartir `Encryption:Key` es imprescindible para descifrar los correos/teléfonos ya guardados; compartir `Jwt:Key` hace que un token emitido en una máquina se valide en las demás. Para ver los que ya tienes configurados:
+
+```bash
+dotnet user-secrets list --project src/Backend.API/Backend.API.csproj
+```
+
+3. Aplica las migraciones (crea las tablas y siembra los roles):
+
+```bash
+dotnet tool restore
+dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
+```
+
+> La migración se aplica **una sola vez** a la base compartida; los datos que hubiera en la base local (Docker) no se migran solos. El **primer usuario registrado** en la base compartida será el `Administrador`.
+
+Si quieres volver a usar el PostgreSQL local de Docker, revierte la sección `Database` de `appsettings.json` a `Host: localhost`, `User: postgres` y quita `SslMode`.
+
 ## Endpoints
 
 | Método | Ruta                       | Autorización        | Descripción                          |
@@ -117,6 +146,9 @@ Si no quieres usar Docker, instala PostgreSQL directamente en tu máquina:
 | PUT    | `/api/equipment/PutEquipment/{id}`          | Administrador/Técnico | Edita un equipo              |
 | PATCH  | `/api/equipment/PatchEquipmentStatus/{id}`  | Administrador/Técnico | Cambia el estado del equipo  |
 | DELETE | `/api/equipment/DeleteEquipment/{id}`       | Administrador/Técnico | Elimina un equipo            |
+| POST   | `/api/assignment/AssignEquipment`          | Administrador/Técnico | Asigna un equipo a un usuario |
+| PATCH  | `/api/assignment/ReleaseEquipment/{id}`     | Administrador/Técnico | Libera un equipo (marca la asignación como RELEASED) |
+| GET    | `/api/assignment/GetAssignments`            | Todos                 | Lista asignaciones (Empleado/Cliente solo las propias) |
 
 **Registro**
 
@@ -250,6 +282,33 @@ Authorization: Bearer <token-admin-o-tecnico>
 
 **Eliminar**: `DELETE /api/equipment/DeleteEquipment/{id}` responde `204` (o `404` si no existe).
 
+## Asignaciones
+
+La entidad `Assignment` registra la entrega de un equipo a un usuario. Un **usuario puede tener muchas asignaciones**; **una asignación contiene un solo equipo** (`EquipmentId` → `Equipments`, `UserId` → `Users`). No se puede eliminar un equipo o usuario que tenga asignaciones.
+
+Campos: `id`, `equipmentId`, `userId`, `assignedAt` (UTC, se asigna al crear), `releasedAt` (UTC, se asigna al liberar; null mientras está activa), `status`, `observations`.
+
+**Estados** (`AssignmentStatus`): `ACTIVE`, `RELEASED`.
+
+- **Asignar** (POST `/api/assignment/AssignEquipment`): solo `Administrador` y `Técnico`. Valida que el equipo y el usuario existan; si el equipo ya tiene una asignación `ACTIVE`, responde `409`.
+- **Liberar** (PATCH `/api/assignment/ReleaseEquipment/{id}`): solo `Administrador` y `Técnico`. Marca la asignación como `RELEASED` y asigna `releasedAt`; si ya está liberada, responde `400`.
+- **Consultar** (GET `/api/assignment/GetAssignments`): cualquier rol autenticado. `Administrador` y `Técnico` ven **todas**; `Empleado` y `Cliente` ven **solo las suyas**.
+
+**Asignar equipo**
+
+```json
+POST /api/assignment/AssignEquipment
+Authorization: Bearer <token-admin-o-tecnico>
+
+{
+  "equipmentId": "32aa98f7-...-uuid-del-equipo",
+  "userId": "6a5c...-uuid-del-usuario",
+  "observations": "Entrega inicial del equipo"
+}
+```
+
+**Liberar** (`PATCH /api/assignment/ReleaseEquipment/{id}`) acepta opcionalmente `observations` en el body.
+
 ## CORS (conexión desde el front)
 
 En desarrollo se aceptan peticiones de cualquier origen en `localhost` (React, Angular, etc.), no hay que configurar nada.
@@ -272,5 +331,6 @@ Para producción, define los orígenes permitidos en `appsettings.json` (o con l
 Tabla `Users`: `Id`, `Email` (cifrado), `EmailHash` (índice ciego), `PasswordHash`, `FullName`, `Phone` (cifrado), `Active` (booleano), `FailedAttempts`, `CreatedAt`, `UpdatedAt`, `RoleId`.
 Tabla `Roles`: `Id`, `Name` (4 roles fijos).
 Tabla `Equipments`: `Id`, `InternalCode` (único), `SerialNumber` (único), `Type`, `Brand`, `Model`, `Characteristics` (jsonb), `AcquisitionDate`, `AcquisitionPrice`, `WarrantyUntil`, `Location`, `Status`, `CreatedAt`, `UpdatedAt`.
+Tabla `Assignments`: `Id`, `EquipmentId` (FK), `UserId` (FK), `AssignedAt`, `ReleasedAt`, `Status`, `Observations`.
 
 Para conectarse desde un cliente (DBeaver, pgAdmin): host `localhost`, puerto `5432`, base `database`, usuario `postgres`, contraseña `postgres`.

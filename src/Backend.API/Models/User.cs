@@ -15,4 +15,6 @@ public class User
 
     public Guid? RoleId { get; set; }
     public Role? Role { get; set; }
+
+    public ICollection<Assignment>? Assignments { get; set; }
 }

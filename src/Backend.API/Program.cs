@@ -16,7 +16,9 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 var db = builder.Configuration.GetSection("Database");
-var connectionString = $"Host={db["Host"]};Port={db["Port"]};Database={db["Name"]};Username={db["User"]};Password={db["Password"]}";
+var sslMode = db["SslMode"];
+var connectionString = $"Host={db["Host"]};Port={db["Port"]};Database={db["Name"]};Username={db["User"]};Password={db["Password"]}"
+    + (string.IsNullOrEmpty(sslMode) ? "" : $";SslMode={sslMode}");
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
@@ -76,6 +78,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
+builder.Services.AddScoped<IAssignmentService, AssignmentService>();
 
 var app = builder.Build();
 
