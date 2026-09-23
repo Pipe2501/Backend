@@ -51,6 +51,8 @@ dotnet tool restore
 dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
 ```
 
+> Alternativa: estas migraciones también se aplican **automáticamente al arrancar la API** (`Database.Migrate()`), así que en muchos casos basta con `dotnet run`.
+
 ### 4. Ejecutar la API
 
 ```bash
@@ -125,6 +127,8 @@ dotnet user-secrets list --project src/Backend.API/Backend.API.csproj
 dotnet tool restore
 dotnet tool run dotnet-ef database update --project src/Backend.API --startup-project src/Backend.API
 ```
+
+> Paso opcional: la API aplica las migraciones pendientes **automáticamente al arrancar** (`Database.Migrate()`), por lo que normalmente basta con ejecutar `dotnet run`.
 
 > La migración se aplica **una sola vez** a la base compartida; los datos que hubiera en la base local (Docker) no se migran solos. El **primer usuario registrado** en la base compartida será el `Administrador`.
 

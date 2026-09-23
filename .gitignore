@@ -480,3 +480,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Scripts de configuracion con secretos locales
+setup.ps1
+setup.cmd
